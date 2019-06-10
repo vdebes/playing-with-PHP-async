@@ -1,0 +1,8 @@
+{
+    "require": {
+        "php": "^7.2",
+        "m6web/tornado": "^0.1.1",
+        "guzzlehttp/guzzle": "^6.3",
+        "fzaninotto/faker": "^1.8"
+    }
+}

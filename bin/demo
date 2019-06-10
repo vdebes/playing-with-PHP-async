@@ -1,0 +1,98 @@
+#!/usr/bin/php
+
+<?php
+
+use GuzzleHttp\Psr7\Request;
+use M6Web\Tornado\Adapter\Guzzle\CurlMultiClientWrapper;
+use M6Web\Tornado\Adapter\Guzzle\HttpClient;
+use M6Web\Tornado\Adapter\Tornado\EventLoop;
+
+include __DIR__ . "/../vendor/autoload.php";
+
+const BASE_URI = 'http://localhost:3000/';
+
+$eventLoop = new EventLoop();
+$httpClient = new HttpClient($eventLoop, new CurlMultiClientWrapper());
+
+[$bookCount, $authorCount, $books] = $eventLoop->wait(
+    $eventLoop->promiseAll(
+        $eventLoop->async(getBookCountAsync($httpClient)),
+        $eventLoop->async(getAuthorsCountAsync($httpClient)),
+        $eventLoop->async(getBooksAsync($eventLoop, $httpClient))
+    )
+);
+
+echo "There are $bookCount books from $authorCount authors available.\n";
+
+echo "Books are : \n";
+
+array_map(function ($book) {
+    echo $book['title'] . ' by ' . $book['author']['firstName'] . ' ' . $book['author']['lastName'] .
+        ', published ' . $book['releaseDate'] . PHP_EOL;
+}, $books);
+
+function getBookCountAsync(HttpClient $httpClient): \Generator
+{
+    $request = new Request('GET', BASE_URI . 'list');
+
+    $response = yield $httpClient->sendRequest($request);
+
+    $data = json_decode($response->getBody()->getContents(), true);
+
+    return count($data);
+}
+
+function getAuthorsCountAsync(HttpClient $httpClient): \Generator
+{
+    $request = new Request('GET', BASE_URI . 'authors');
+
+    $response = yield $httpClient->sendRequest($request);
+
+    $data = json_decode($response->getBody()->getContents(), true);
+
+    return count($data);
+}
+
+function getBooksAsync(EventLoop $eventLoop, HttpClient $httpClient)
+{
+    $request = new Request('GET', BASE_URI . 'list');
+
+    $response = yield $httpClient->sendRequest($request);
+
+    $data = json_decode($response->getBody()->getContents(), true);
+
+    foreach ($data as &$book) {
+        $book = yield $eventLoop->async(getBookAsync($httpClient, $book['id']));
+        $book['author'] = yield $eventLoop->async(getAuthorAsync($httpClient, $book['author']['id']));
+        $book['releaseDate'] = (new DateTime(
+                $book['releaseDate']['date'],
+                new DateTimeZone($book['releaseDate']['timezone'])
+        ))->format('M-Y');
+    }
+
+    return $data;
+}
+
+function getBookAsync(HttpClient $httpClient, int $bookId): \Generator
+{
+    $request = new Request('GET', BASE_URI . 'books' . '/' . $bookId);
+
+    $response = yield $httpClient->sendRequest($request);
+
+    $data = json_decode($response->getBody()->getContents(), true);
+
+    return $data;
+}
+
+function getAuthorAsync(HttpClient $httpClient, int $authorId): \Generator
+{
+    $request = new Request('GET', BASE_URI . 'authors' . '/' . $authorId);
+
+    $response = yield $httpClient->sendRequest($request);
+
+    $data = json_decode($response->getBody()->getContents(), true);
+
+    return $data;
+}
+
+?>

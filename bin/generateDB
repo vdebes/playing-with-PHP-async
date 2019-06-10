@@ -1,0 +1,60 @@
+#!/usr/bin/php
+
+<?php
+
+include "vendor/autoload.php";
+
+$bookCount = $argv[1] ?? rand(100, 1000);
+
+echo "Generating fake data for $bookCount entries\n";
+
+$faker = Faker\Factory::create();
+$authorsCount = rand(1, (int) ceil(($bookCount/10)));
+
+$output = [
+    'books' => [],
+    'authors' => []
+];
+
+$genders = [0 => 'male', 1 => 'female'];
+
+for ($i=1; $i<=$bookCount; $i++) {
+    $output['books'][] = [
+        'id' => $i,
+        'title' => $faker->realText(40),
+        'ISBN' => $faker->ean13(),
+        'releaseDate' => $faker->dateTimeBetween('-20 years', 'today'),
+        'origin' => $faker->countryCode(),
+        'author' => [
+            'id' => rand(1, $authorsCount)
+        ],
+    ];
+
+    $output['list'][] = [
+            "id" => $i,
+            "title" => $output['books'][$i-1]['title']
+    ];
+}
+
+for ($i=1; $i<=$authorsCount; $i++) {
+    $output['authors'][] = [
+        "id" => $i,
+        "firstName" => $faker->firstName(rand(0, 1)),
+        "lastName" => $faker->lastName(),
+    ];
+}
+
+echo "Clearing JSON database\n";
+
+$fileHandle = fopen("db.json", "w");
+
+echo "Dumping data\n";
+
+fputs($fileHandle, json_encode($output));
+
+fclose($fileHandle);
+
+echo "Done! now get to work.\n";
+
+?>
+
