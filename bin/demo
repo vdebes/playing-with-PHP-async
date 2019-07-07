@@ -22,6 +22,9 @@ if (isset($argv[1])) {
         case 'authors':
             displayAuthorsAndAuthorsCount($eventLoop, $httpClient);
             break;
+        case 'fullBooksInfo':
+            displayFullBooksInfo($eventLoop, $httpClient);
+            break;
         default:
             die('Unknown argument. RTFM please…');
     }
@@ -61,6 +64,24 @@ function displayAuthorsAndAuthorsCount(EventLoop $eventLoop, HttpClient $httpCli
     echo "The $authorsCount authors are $authors.\n\n";
 }
 
+function displayFullBooksInfo(EventLoop $eventLoop, HttpClient $httpClient)
+{
+    $createGenerator = function (EventLoop $eventLoop, HttpClient $httpClient): Generator {
+        /** @var Promise $booksIds */
+        $booksIds = yield $eventLoop->async(getBooksIds($httpClient));
+
+        $books = yield $eventLoop->promiseForeach($booksIds, function (int $bookId) use ($eventLoop, $httpClient) {
+            $book = yield $eventLoop->async(getBookById($httpClient, $bookId));
+            $book['author'] = yield $eventLoop->async(getAuthorById($httpClient, $book['author']['id']));
+
+            return $book;
+        });
+        var_export($books);
+    };
+
+    $eventLoop->wait($eventLoop->async($createGenerator($eventLoop, $httpClient)));
+}
+
 function getAuthorsCount(HttpClient $httpClient): Generator
 {
     $request = new Request('GET', BASE_URI . 'authors');
@@ -79,6 +100,37 @@ function getAuthors(HttpClient $httpClient): Generator
     return ltrim(implode(', ', array_map(function (array $author) {
             return $author['firstName'] . ' ' . strtoupper($author['lastName']);
         }, $data)), ', ') . '.';
+}
+
+function getBooksIds(HttpClient $httpClient): \Generator
+{
+    $request = new Request('GET', BASE_URI . 'list');
+    $response = yield $httpClient->sendRequest($request);
+    $data = json_decode($response->getBody()->getContents(), true);
+
+    return array_map(function (array $book) {
+        if (!isset($book['id'])) {
+            throw new Exception('Book should have an ID.');
+        }
+
+        return $book['id'];
+    }, $data);
+}
+
+function getBookById(HttpClient $httpClient, int $bookId): \Generator
+{
+    $request = new Request('GET', BASE_URI . 'books/' . $bookId);
+    $response = yield $httpClient->sendRequest($request);
+
+    return json_decode($response->getBody()->getContents(), true);
+}
+
+function getAuthorById(HttpClient $httpClient, int $authorId): \Generator
+{
+    $request = new Request('GET', BASE_URI . 'authors/' . $authorId);
+    $response = yield $httpClient->sendRequest($request);
+
+    return json_decode($response->getBody()->getContents(), true);
 }
 
 ?>
