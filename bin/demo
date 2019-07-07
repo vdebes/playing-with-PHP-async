@@ -2,6 +2,7 @@
 
 <?php
 
+use App\MonitoredHttpClient;
 use GuzzleHttp\Psr7\Request;
 use M6Web\Tornado\Adapter\Guzzle\CurlMultiClientWrapper;
 use M6Web\Tornado\HttpClient;
@@ -23,7 +24,11 @@ if (isset($argv[1])) {
             displayAuthorsAndAuthorsCount($eventLoop, $httpClient);
             break;
         case 'fullBooksInfo':
-            displayFullBooksInfo($eventLoop, $httpClient);
+            if (isset($argv[2]) && $argv[2] === 'monitored') {
+                displayFullBooksInfoMonitored($eventLoop, $httpClient);
+            } else {
+                displayFullBooksInfo($eventLoop, $httpClient);
+            }
             break;
         default:
             die('Unknown argument. RTFM please…');
@@ -79,6 +84,25 @@ function displayFullBooksInfo(EventLoop $eventLoop, HttpClient $httpClient)
         var_export($books);
     };
 
+    $eventLoop->wait($eventLoop->async($createGenerator($eventLoop, $httpClient)));
+}
+
+function displayFullBooksInfoMonitored(EventLoop $eventLoop, HttpClient $httpClient)
+{
+    $httpClient = new MonitoredHttpClient($httpClient);
+
+    $createGenerator = function (EventLoop $eventLoop, MonitoredHttpClient $httpClient): Generator {
+        /** @var Promise $booksIds */
+        $booksIds = yield $eventLoop->async(getBooksIds($httpClient));
+
+        yield $eventLoop->promiseForeach($booksIds, function (int $bookId) use ($eventLoop, $httpClient) {
+            $book = yield $eventLoop->async(getBookById($httpClient, $bookId));
+            $book['author'] = yield $eventLoop->async(getAuthorById($httpClient, $book['author']['id']));
+
+            return $book;
+        });
+    };
+    
     $eventLoop->wait($eventLoop->async($createGenerator($eventLoop, $httpClient)));
 }
 
