@@ -19,6 +19,9 @@ if (isset($argv[1])) {
         case 'bookCount':
             displayBookCount($eventLoop, $httpClient);
             break;
+        case 'authors':
+            displayAuthorsAndAuthorsCount($eventLoop, $httpClient);
+            break;
         default:
             die('Unknown argument. RTFM please…');
     }
@@ -29,6 +32,7 @@ function displayBookCount(EventLoop $eventLoop, HttpClient $httpClient)
     /** @var Promise $bookCount */
     $bookCount = $eventLoop->async(getBookCount($httpClient));
     $bookCount = $eventLoop->wait($bookCount);
+
     echo "There are $bookCount books available.\n\n";
 }
 
@@ -37,7 +41,44 @@ function getBookCount(HttpClient $httpClient): Generator
     $request = new Request('GET', BASE_URI . 'list');
     $response = yield $httpClient->sendRequest($request);
     $data = json_decode($response->getBody()->getContents(), true);
+
     return count($data);
+}
+
+function displayAuthorsAndAuthorsCount(EventLoop $eventLoop, HttpClient $httpClient)
+{
+    /*
+     * this is a bit useless to use 2 requests, I could have simply count the response data of the first.
+     * But this is to illustrate the syntax : wait(promiseAll(...Promises))
+     */
+    [$authorsCount, $authors] = $eventLoop->wait(
+        $eventLoop->promiseAll(
+            $eventLoop->async(getAuthorsCount($httpClient)),
+            $eventLoop->async(getAuthors($httpClient))
+        )
+    );
+
+    echo "The $authorsCount authors are $authors.\n\n";
+}
+
+function getAuthorsCount(HttpClient $httpClient): Generator
+{
+    $request = new Request('GET', BASE_URI . 'authors');
+    $response = yield $httpClient->sendRequest($request);
+    $data = json_decode($response->getBody()->getContents(), true);
+
+    return count($data);
+}
+
+function getAuthors(HttpClient $httpClient): Generator
+{
+    $request = new Request('GET', BASE_URI . 'authors');
+    $response = yield $httpClient->sendRequest($request);
+    $data = json_decode($response->getBody()->getContents(), true);
+
+    return ltrim(implode(', ', array_map(function (array $author) {
+            return $author['firstName'] . ' ' . strtoupper($author['lastName']);
+        }, $data)), ', ') . '.';
 }
 
 ?>
