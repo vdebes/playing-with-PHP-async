@@ -31,8 +31,8 @@ for ($i=1; $i<=$bookCount; $i++) {
     ];
 
     $output['list'][] = [
-            "id" => $i,
-            "title" => $output['books'][$i-1]['title']
+        "id" => $i,
+        "title" => $output['books'][$i-1]['title']
     ];
 }
 
@@ -57,4 +57,3 @@ fclose($fileHandle);
 echo "Done! now get to work.\n";
 
 ?>
-
