@@ -8,7 +8,11 @@ PHP library, [M6Web/Tornado](https://github.com/M6Web/Tornado).
 2. Generate a DB of a random number of entries ```bin\generateDB```
 2. Install and lauch fake API with ```npm install -g json-server@0.14.2``` 
 and ```json-server --watch db.json```
-3. Launch the demo file with ```bin/demo```
+3. Launch the demo file with ```bin/demo``` + arguments :
+    * ```bookCount```
+    * ```authors```
+    * ```fullBooksInfo```
+    * ```fullBooksInfo monitored```
 
 ## Use case
 The use case may seem unlikely to exist in real life, this is just for demo purposes.
