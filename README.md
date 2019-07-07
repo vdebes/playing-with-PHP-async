@@ -4,9 +4,9 @@ Like this repo's title suggests, this is just a quick drill using an asynchronou
 PHP library, [M6Web/Tornado](https://github.com/M6Web/Tornado).
 
 ## Installation
-1. Install PHP dependancies with ```composer install```
+1. Install PHP dependancies with ```composer install```
 2. Generate a DB of a random number of entries ```bin\generateDB```
-2. Install and lauch fake API with ```yarn add typicode/json-server``` 
+2. Install and lauch fake API with ```npm install -g json-server@0.14.2``` 
 and ```json-server --watch db.json```
 3. Launch the demo file with ```bin/demo```
 
@@ -24,7 +24,8 @@ information
 
 ## The kata
 1. Print the number of books
-2. Add the number of authors to the previous display
-3. Display the total number of requests (hint : use a [Decorator](https://en.wikipedia.org/wiki/Decorator_pattern) 
-for httpClient)
-4. print the data structure populated by all the informations available
+2. Print the number of authors and their names using two requests (for the sake of the drill)
+3. Print a data structure of books with author in a nested array (hint: use promiseForeach())
+
+__Bonus__: For drill 3, display the total number of requests and the elapsed time (hint : use a 
+[Decorator](https://en.wikipedia.org/wiki/Decorator_pattern) for httpClient)
